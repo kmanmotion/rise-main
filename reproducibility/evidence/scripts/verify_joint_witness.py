@@ -160,7 +160,7 @@ result={
  'dimension':51,'solver_success':bool(sol.success),'support_solvers_success':bool(si.success and sb.success),'rhs_residual':res,'operational_C':C,
  'free_R':R.tolist(),'free_E':E.tolist(),'total_R_moiety':Rt.tolist(),'total_E_moiety':Et.tolist(),
  'parasite_total':parasite,'max_real_full_Jacobian':maxreal,'support_block_contrasts':contr,'support_block_times':times.tolist(),'operational_carrier':'L=A+U',
- 'note':'Explicit R/E free species and symmetric g*C*V material influx replace the previous algebraic fixed-total closure. Numerical certificate only.'
+ 'note':'The model uses explicit free R/E species and symmetric g*C*V material influx. Numerical compatibility example only.'
 }
 print(json.dumps(result,indent=2))
 
