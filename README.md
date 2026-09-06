@@ -11,6 +11,10 @@ DOI: [10.5281/zenodo.22377652](https://doi.org/10.5281/zenodo.22377652)
 
 The paper includes its proofs, references, author contributions, and AI-use disclosure. The accompanying scripts reproduce representative numerical examples. File checksums are listed in `SHA256SUMS.txt`.
 
+## Interactive simulator
+
+[Open the RISE simulator](https://liangkai.de/rise-simulator/)
+
 ## Technical review
 
 This manuscript is an unreviewed preprint released for open technical evaluation. No independent human subject-matter expert has yet verified its mathematical proofs or scientific conclusions. Comments identifying mathematical, chemical, computational, bibliographic, or interpretive errors are welcome. Independent mathematicians and researchers with relevant expertise are specifically invited to assess the assumptions, definitions, proofs, computations, and scope of the conclusions.
