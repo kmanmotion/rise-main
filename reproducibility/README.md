@@ -14,6 +14,8 @@ python3 reproducibility/evidence/scripts/verify_joint_witness.py
 
 Both scripts contain their own model parameters and require no input data files. Successful runs print JSON with `"status": "PASS"` and exit with code 0. The first script also writes `REDUCED_EXAMPLES.json` and `FIGURE5_REDUCED_POINTS.csv` under `reproducibility/evidence/results/`. The second prints the 51-variable compatibility result, including solver diagnostics and support contrasts. Save the output if needed for comparison.
 
+The reduced verifier records the latest completed check in `REDUCED_EXAMPLES.json`. A validation failure replaces an earlier PASS receipt. Use the Figure 5 CSV only with a PASS receipt whose `figure5_csv_sha256` matches the CSV bytes. When running multiple replays, use separate working copies if each result must be retained.
+
 Run `python3 reproducibility/tests/test_verifiers.py` from the repository root to replay both examples and check that corrupted reference data, failed solves and incomplete integrations exit with a JSON failure in optimized Python as well.
 
 ## Rights

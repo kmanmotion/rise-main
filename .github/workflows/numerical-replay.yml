@@ -4,11 +4,15 @@ on:
     paths:
       - "reproducibility/**"
       - "SHA256SUMS.txt"
+      - "README.md"
+      - "manuscript/output/pdf/RISE_CORE_MANUSCRIPT_FINAL_v1.0.pdf"
       - ".github/workflows/numerical-replay.yml"
   pull_request:
     paths:
       - "reproducibility/**"
       - "SHA256SUMS.txt"
+      - "README.md"
+      - "manuscript/output/pdf/RISE_CORE_MANUSCRIPT_FINAL_v1.0.pdf"
       - ".github/workflows/numerical-replay.yml"
   workflow_dispatch:
 

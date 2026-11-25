@@ -1,4 +1,5 @@
 """Regression tests for the numerical replay entry points (Python 3.12, NumPy, SciPy)."""
+import hashlib
 import json
 from pathlib import Path
 import subprocess
@@ -37,6 +38,13 @@ class ReplayTests(unittest.TestCase):
 
     def test_wrong_reference(self):
         path = self.scripts / "verify_reduced_examples.py"
+        results = self.scripts.parent / "results"
+        code, good = self.replay(path.name)
+        self.assertEqual((code, good["status"]), (0, "PASS"))
+        receipt = results / "REDUCED_EXAMPLES.json"
+        self.assertEqual(json.loads(receipt.read_text(encoding="utf-8")), good)
+        points = (results / "FIGURE5_REDUCED_POINTS.csv").read_bytes()
+        self.assertEqual(good["figure5_csv_sha256"], hashlib.sha256(points).hexdigest())
         source = path.read_text(encoding="utf-8")
         original = "9.270995112117777"
         self.assertEqual(source.count(original), 1)
@@ -47,7 +55,8 @@ class ReplayTests(unittest.TestCase):
                 self.assertNotEqual(code, 0)
                 self.assertEqual(result["status"], "FAIL")
                 self.assertIn("Figure 5", result["check"])
-                self.assertFalse((self.scripts.parent / "results" / "REDUCED_EXAMPLES.json").exists())
+                self.assertEqual(json.loads(receipt.read_text(encoding="utf-8")), result)
+                self.assertNotIn("figure5_csv_sha256", result)
 
     def test_failed_reference(self):
         fault = """

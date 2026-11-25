@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Recompute the quoted reduced examples and Figure 5 points, not a proof."""
 from pathlib import Path
-import csv, json, platform
+import csv, hashlib, io, json, platform, tempfile
 import numpy as np
 import scipy
 from scipy.optimize import root
@@ -26,9 +26,26 @@ def rhs(z,g=0):
     return np.r_[((alpha+b*A*A)*r[:,None]*e[None,:]-(d+delta+g)*A+rho*y*D).ravel(),
                  (delta*A-(ell+rho*y+g)*D).ravel(),
                  beta*A.sum()-(mu+g)*y-rho*y*D.sum()]
+def write_output(name, data):
+    temporary = tempfile.NamedTemporaryFile(dir=OUT, delete=False)
+    path = Path(temporary.name)
+    try:
+        with temporary:
+            temporary.write(data)
+        path.replace(OUT / name)
+    finally:
+        path.unlink(missing_ok=True)
+
+
+def report(result):
+    payload = json.dumps(result, indent=2) + "\n"
+    write_output("REDUCED_EXAMPLES.json", payload.encode("utf-8"))
+    print(payload, end="")
+
+
 def require(condition, check):
     if not condition:
-        print(json.dumps({"status": "FAIL", "check": check}))
+        report({"status": "FAIL", "check": check})
         raise SystemExit(1)
 
 
@@ -51,12 +68,16 @@ coefficient=float(rho*beta*v['u']*c*(v['p']-v['q']))
 require(np.max(np.abs(rhs(z)))<1e-10, "g=0 equilibrium residual")
 require(abs(spectral-(-.2598875203))<1e-7, "g=0 spectral abscissa")
 require(abs(coefficient-.0096217374)<1e-9, "g=0 support coefficient")
-with (OUT/'FIGURE5_REDUCED_POINTS.csv').open('w',newline='') as f:
-    writer=csv.DictWriter(f,fieldnames=rows[0]);writer.writeheader();writer.writerows(rows)
+points = io.StringIO(newline="")
+writer = csv.DictWriter(points, fieldnames=rows[0])
+writer.writeheader()
+writer.writerows(rows)
+point_bytes = points.getvalue().encode("utf-8")
+write_output("FIGURE5_REDUCED_POINTS.csv", point_bytes)
 result={'status':'PASS','role':'representative numerical and algebraic checks, not universal proof',
         'environment':{'python':platform.python_version(),'numpy':np.__version__,'scipy':scipy.__version__},
         'growth_points':rows,'g0_full_9D_spectral_abscissa':spectral,
         'g0_support_capacity_t2_coefficient':coefficient,
-        'figure5_max_allowed_absolute_discrepancy':2e-9}
-(OUT/'REDUCED_EXAMPLES.json').write_text(json.dumps(result,indent=2)+'\n')
-print(json.dumps(result,indent=2))
+        'figure5_max_allowed_absolute_discrepancy':2e-9,
+        'figure5_csv_sha256':hashlib.sha256(point_bytes).hexdigest()}
+report(result)
