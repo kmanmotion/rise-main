@@ -26,15 +26,21 @@ def rhs(z,g=0):
     return np.r_[((alpha+b*A*A)*r[:,None]*e[None,:]-(d+delta+g)*A+rho*y*D).ravel(),
                  (delta*A-(ell+rho*y+g)*D).ravel(),
                  beta*A.sum()-(mu+g)*y-rho*y*D.sum()]
+def require(condition, check):
+    if not condition:
+        print(json.dumps({"status": "FAIL", "check": check}))
+        raise SystemExit(1)
+
+
 rows=[];guess=[.579,1.45]
 for g,ce,kce in expected:
     fit=root(lambda v:eq(v,g),guess,tol=1e-11)
-    assert fit.success and np.max(np.abs(eq(fit.x,g)))<1e-10
+    require(fit.success and np.max(np.abs(eq(fit.x,g)))<1e-10, f"equilibrium solve at g={g}")
     u,y=fit.x;guess=fit.x
     c=delta/(ell+rho*y+g);m=np.sqrt(u*u-4*alpha/b)
     p,q=(u+m)/2,(u-m)/2;C=m/u;kc=b*u
-    assert abs(C-ce)<2e-9 and abs(kc-kce)<2e-9
-    assert abs(kc*kc*(1-C*C)-4*alpha*b)<1e-10
+    require(abs(C-ce)<2e-9 and abs(kc-kce)<2e-9, f"Figure 5 reference at g={g}")
+    require(abs(kc*kc*(1-C*C)-4*alpha*b)<1e-10, f"branch identity at g={g}")
     rows.append({'g':g,'u':float(u),'y':float(y),'p':float(p),'q':float(q),
                  'C':float(C),'kappa_c':float(kc),'free_resource':float(1-(1+c)*u)})
 v=rows[0];A=np.array([[v['p'],v['q']],[v['q'],v['p']]])
@@ -42,9 +48,9 @@ c=delta/(ell+rho*v['y']);z=np.r_[A.ravel(),(c*A).ravel(),v['y']]
 h=1e-6;J=np.column_stack([(rhs(z+h*np.eye(9)[i])-rhs(z-h*np.eye(9)[i]))/(2*h) for i in range(9)])
 spectral=float(np.linalg.eigvals(J).real.max())
 coefficient=float(rho*beta*v['u']*c*(v['p']-v['q']))
-assert np.max(np.abs(rhs(z)))<1e-10
-assert abs(spectral-(-.2598875203))<1e-7
-assert abs(coefficient-.0096217374)<1e-9
+require(np.max(np.abs(rhs(z)))<1e-10, "g=0 equilibrium residual")
+require(abs(spectral-(-.2598875203))<1e-7, "g=0 spectral abscissa")
+require(abs(coefficient-.0096217374)<1e-9, "g=0 support coefficient")
 with (OUT/'FIGURE5_REDUCED_POINTS.csv').open('w',newline='') as f:
     writer=csv.DictWriter(f,fieldnames=rows[0]);writer.writeheader();writer.writerows(rows)
 result={'status':'PASS','role':'representative numerical and algebraic checks, not universal proof',

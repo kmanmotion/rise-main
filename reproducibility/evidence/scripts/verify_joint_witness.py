@@ -20,7 +20,28 @@ def reduced_g(v):
     u,y=v; h=ell+rho*y+g; c=delta/h; s=1-(1+c)*u
     return np.array([b*u*s*s-d-g-delta*(ell+g)/h,
                      2*beta*u-(mu+g)*y-2*rho*y*delta*u/h])
-rs=root(reduced_g,[0.556,1.277],tol=1e-13); assert rs.success
+def fail(check, message):
+    print(json.dumps({"status": "FAIL", "check": check, "reason": str(message)}))
+    raise SystemExit(1)
+
+
+def checked_samples(solution, check, dimension, end, times=None):
+    if not solution.success:
+        fail(check, solution.message)
+    t = np.asarray(solution.t)
+    y = np.asarray(solution.y)
+    if (t.ndim != 1 or not t.size or t[-1] != end
+            or y.shape != (dimension, t.size)
+            or (times is not None and not np.array_equal(t, times))):
+        fail(check, "incomplete integration output")
+    if not np.isfinite(y).all():
+        fail(check, "non-finite integration output")
+    return y
+
+
+rs=root(reduced_g,[0.556,1.277],tol=1e-13)
+if not rs.success or not np.isfinite(rs.x).all():
+    fail("reduced reference", rs.message)
 u_host,yred=rs.x; h=ell+rho*yred+g; c=delta/h
 p=(u_host+np.sqrt(u_host*u_host-4*alpha/b))/2
 q=(u_host-np.sqrt(u_host*u_host-4*alpha/b))/2
@@ -138,7 +159,7 @@ def cap(z):
 
 z0=initial()
 sol=solve_ivp(rhs,(0,200),z0,method='BDF',rtol=3e-9,atol=1e-11)
-z=sol.y[:,-1]
+z=checked_samples(sol, "equilibration", z0.size, 200)[:,-1]
 A,D,B,H,X,Y,U,M,O,P,Z,XP,YP,R,E=unpack(z)
 Rt,Et=totals(z)
 res=float(np.max(np.abs(rhs(0,z))))
@@ -150,8 +171,10 @@ parasite=float(P.sum()+Z.sum()+XP.sum()+YP.sum())
 # matched support block
 times=np.array([0.05,0.1,0.2,0.5,1.0])
 si=solve_ivp(lambda t,x:rhs(t,x,True),(0,1),z,t_eval=times,method='BDF',rtol=1e-9,atol=1e-11)
+intact=checked_samples(si, "intact support", z.size, times[-1], times)
 sb=solve_ivp(lambda t,x:rhs(t,x,False),(0,1),z,t_eval=times,method='BDF',rtol=1e-9,atol=1e-11)
-contr=[float(cap(si.y[:,k])-cap(sb.y[:,k])) for k in range(len(times))]
+blocked=checked_samples(sb, "blocked support", z.size, times[-1], times)
+contr=[float(cap(intact[:,k])-cap(blocked[:,k])) for k in range(len(times))]
 result={
  'proof_role':'numerical compatibility witness only; not analytic proof',
  'status':'PASS' if (sol.success and res<1e-8 and C>0.35 and min(R)>0.1 and min(E)>0.1 and parasite<1e-3 and maxreal<-0.09 and max(abs(Rt-1))<1e-8 and max(abs(Et-1))<1e-8 and all(x>0 for x in contr)) else 'FAIL',
@@ -163,9 +186,6 @@ result={
  'note':'The model uses explicit free R/E species and symmetric g*C*V material influx. Numerical compatibility example only.'
 }
 print(json.dumps(result,indent=2))
-
-if not (si.success and sb.success):
-    raise RuntimeError("Support assay integration failed")
 
 if result['status']!='PASS':
     raise SystemExit(1)

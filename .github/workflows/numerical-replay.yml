@@ -1,0 +1,33 @@
+name: Numerical replay
+on:
+  push:
+    paths:
+      - "reproducibility/**"
+      - "SHA256SUMS.txt"
+      - ".github/workflows/numerical-replay.yml"
+  pull_request:
+    paths:
+      - "reproducibility/**"
+      - "SHA256SUMS.txt"
+      - ".github/workflows/numerical-replay.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  replay:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - name: Check out the revision under test
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Check published file hashes
+        run: sha256sum -c SHA256SUMS.txt
+      - name: Replay examples and failure cases
+        run: |
+          python3.12 -m venv "$RUNNER_TEMP/rise-replay"
+          "$RUNNER_TEMP/rise-replay/bin/python" -m pip install numpy==2.3.5 scipy==1.17.0
+          "$RUNNER_TEMP/rise-replay/bin/python" reproducibility/tests/test_verifiers.py
